@@ -4,12 +4,7 @@ version = "0.1.0"
 description = "A hybrid Python-C++ module using Pybind11 and Modern CMake to perform GIL-free, multi-threaded image transformations on NumPy arrays with zero-copy RAII memory management."
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = [
-    "numpy>=2.4.4",
-]
+dependencies = ["numpy>=2.4.4,<3"]
 
 [dependency-groups]
-dev = [
-    "pytest>=9.0.2",
-    "pytest-benchmark>=5.2.3",
-]
+dev = ["pytest>=9.0.2", "pytest-benchmark>=5.2.3"]
