@@ -13,21 +13,22 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
 **Load**: Level 2
 
 - **Tasks**:
-    - [ ] Create the top-level directory layout: `src/` for C++ sources, `include/` for headers, `python/` for the driver script and tests, and `build/` (gitignored) for CMake artifacts.
-    - [ ] Initialize the Python project with `uv init` (generates `pyproject.toml`, `.python-version`, `uv.lock`). Add dependencies via `uv add numpy` and `uv add --dev pytest pytest-benchmark`. Run `uv sync` to create the `.venv`.
-        - Note: Pin the NumPy version explicitly in `pyproject.toml` (e.g. `numpy>=1.24,<3`) so the ABI stays stable across rebuilds. Commit `uv.lock` for reproducible installs.
-    - [ ] Configure pre-commit hooks (`.pre-commit-config.yaml`):
+    - [x] Create the top-level directory layout: `src/` for C++ sources, `include/` for headers, `python/` for the driver script and tests, and `build/` (gitignored) for CMake artifacts.
+    - [x] Initialize the Python project with `uv init` (generates `pyproject.toml`, `.python-version`, `uv.lock`). Add dependencies via `uv add numpy` and `uv add --dev pytest pytest-benchmark ruff mypy`. Run `uv sync` to create the `.venv`.
+        - Note: Pin the NumPy version explicitly in `pyproject.toml` (e.g. `numpy>=2.4,<3`) so the ABI stays stable across rebuilds. Commit `uv.lock` for reproducible installs.
+    - [x] Configure pre-commit hooks (`.pre-commit-config.yaml`):
         - `trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-toml`
-        - Local hooks: `ruff check --fix`, `ruff format`, `mypy .` (all via `uv run`)
+        - Local hooks: `ruff check --fix`, `ruff format`, `mypy .`, `pytest --cov` (all via `uv run`)
+        - C++ hooks: `clang-format -i`, `clang-tidy`, `ctest --test-dir build --output-on-failure`
         - Note: Run `uv run pre-commit install` to activate. Hooks must pass before any commit lands.
     - [ ] Configure ruff in `pyproject.toml`: enable rule sets `E`, `F`, `I` (isort), `UP` (pyupgrade), `NPY` (NumPy-specific).
     - [ ] Configure strict mypy in `pyproject.toml` (`[tool.mypy]` with `strict = true`).
     - [ ] Add a `.clang-format` file for C++ source formatting (e.g. `BasedOnStyle: Google` or `LLVM`).
-    - [ ] Author the root `CMakeLists.txt` — set `cmake_minimum_required` to 3.16+, set `CMAKE_CXX_STANDARD` to 17, and use `FetchContent` to pull `pybind11` from its GitHub release tag.
+    - [ ] Author the root `CMakeLists.txt` — set `cmake_minimum_required` to 3.16+, set `CMAKE_CXX_STANDARD` to 17, and use `FetchContent` to pull `pybind11` and `googletest` from their GitHub release tags.
         - Note: Prefer `FetchContent_Declare` + `FetchContent_MakeAvailable` over git submodules — it keeps the repo clone shallow and avoids recursive-init footguns.
     - [ ] Add a minimal `src/module.cpp` containing a single `pybind11_add_module` target that exposes a no-op function returning a string literal.
     - [ ] Verify the full build-import cycle: run `cmake -B build && cmake --build build`, then `uv run python -c "import <module>; print(<module>.noop())"` and confirm the string prints.
-    - [ ] Add `build/`, `*.so`, `__pycache__/`, and `.venv/` to `.gitignore`.
+    - [x] Add `build/`, `*.so`, `__pycache__/`, and `.venv/` to `.gitignore`.
 
 ---
 
@@ -96,6 +97,13 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
         - Note: `call_guard` is cleaner than manually scoping `py::gil_scoped_release release;` inside the function body. It applies RAII at the binding layer rather than polluting C++ logic.
     - [ ] Alternatively, if the function needs pre- or post-GIL work, use an explicit `py::gil_scoped_release` block within the bound lambda. Document which approach was chosen and why.
 
+    **C++ Unit Tests (Google Test)**
+    - [ ] Add a `tests/` directory for C++ tests. Add a CMake target (`add_executable` + `target_link_libraries` with `GTest::gtest_main`) and enable `gtest_discover_tests()`.
+    - [ ] Write `tests/test_transform_quadrant.cpp` — test `transform_quadrant` on a small heap-allocated buffer (e.g. 8x8x3). Verify every byte is inverted. Verify double-inversion restores the original.
+    - [ ] Write `tests/test_quadrant_partitioning.cpp` — test that `process_quadrants` covers `[0, H)` exactly for heights divisible by 4, not divisible by 4, and edge cases (height < 4, height = 1).
+    - [ ] Write `tests/test_thread_safety.cpp` — run `process_quadrants` on a known buffer and verify the result is deterministic across repeated runs (non-overlapping writes should produce identical output every time).
+        - Note: This does not replace ThreadSanitizer — it catches logical races (wrong output), not memory races.
+
     **Thread Safety Audit**
     - [ ] Verify that no two threads write to overlapping row ranges — the quadrant boundaries must be non-overlapping and cover `[0, H)` exactly.
     - [ ] Confirm that `ImageBuffer` members read during threading (`data_ptr`, `width`, `channels`, `row_stride`) are `const` or effectively immutable after construction — no synchronization needed.
@@ -106,12 +114,14 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
     - Calling `process_quadrants` twice restores the original array exactly (idempotency proof of inversion).
     - Running under `ThreadSanitizer` (`cmake -DCMAKE_CXX_FLAGS="-fsanitize=thread" ...`) reports zero data races.
     - The `data_ptr()` value is unchanged before and after `process_quadrants` — the buffer was mutated in-place, never reallocated.
+    - `ctest --test-dir build --output-on-failure` passes all C++ unit tests.
 
 - **Resources**:
     - [Miscellaneous — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/advanced/misc.html) — GIL management in pybind11. Read the **Global Interpreter Lock (GIL)** section — it covers `gil_scoped_release`, `gil_scoped_acquire`, and `call_guard`. This is the single most critical section for this day's work.
     - [std::thread — cppreference.com](https://en.cppreference.com/w/cpp/thread/thread.html) — Full reference for `std::thread`. Read **Member functions** (constructor, `join`, `detach`) and note the precondition: destroying a joinable thread calls `std::terminate`.
     - [Build systems — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/compiling.html) — CMake integration details. Read the **FetchContent** and **pybind11_add_module** sections for linking additional source files into the module target.
     - [pybind/cmake_example — GitHub](https://github.com/pybind/cmake_example) — Reference implementation of a CMake-based pybind11 project. Study the `CMakeLists.txt` for how `pybind11_add_module` is invoked and how source files are listed.
+    - [Quickstart: Building with CMake — GoogleTest](https://google.github.io/googletest/quickstart-cmake.html) — Official guide to FetchContent + GoogleTest. Read the full page — it walks through `FetchContent_Declare`, `enable_testing()`, and `gtest_discover_tests()` end to end.
 
 ---
 
@@ -171,14 +181,14 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
     - [ ] Create `.github/workflows/ci.yml`:
         - Trigger on push and PR to `main`.
         - Job 1 — **Lint & Type Check**: `uv sync`, `uv run ruff check`, `uv run ruff format --check`, `uv run mypy python/`.
-        - Job 2 — **Build & Test**: `cmake -B build && cmake --build build`, then `uv run pytest python/ -v`.
+        - Job 2 — **Build & Test**: `cmake -B build && cmake --build build`, `ctest --test-dir build --output-on-failure` for C++ tests, then `uv run pytest python/ -v` for Python tests.
         - Note: Install system dependencies (`cmake`, `g++`) in the runner before the build step.
     - [ ] Add CI status badge to `README.md`.
 
     **Makefile**
     - [ ] Write a `Makefile` with common targets:
         - `make build` — `cmake -B build && cmake --build build`.
-        - `make test` — `uv run pytest python/ -v`.
+        - `make test` — `ctest --test-dir build --output-on-failure && uv run pytest python/ -v`.
         - `make bench` — `uv run pytest python/test_bench.py -v --benchmark-enable`.
         - `make lint` — `uv run ruff check && uv run ruff format --check && uv run mypy python/`.
         - `make clean` — `rm -rf build/`.

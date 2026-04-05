@@ -39,10 +39,13 @@ uv run python python/bench.py
 ## Test Commands
 
 ```bash
-# Run all tests
+# C++ unit tests (Google Test via ctest)
+ctest --test-dir build --output-on-failure
+
+# Python tests
 uv run pytest python/ -v
 
-# Run a single test file
+# Run a single Python test file
 uv run pytest python/test_zerocopy.py -v
 
 # Run benchmarks
@@ -53,6 +56,9 @@ uv run python python/bench.py
 
 # Full acceptance validation
 uv run python python/run_validation.py
+
+# All tests (C++ + Python)
+ctest --test-dir build --output-on-failure && uv run pytest python/ -v
 ```
 
 ## Architecture
@@ -70,8 +76,9 @@ Three C++ layers, one Python interface:
 ## Build System
 
 - CMake ≥3.16, C++17
-- Pybind11 fetched via `FetchContent` (not a git submodule)
-- Single `pybind11_add_module` target compiling `src/module.cpp` and `src/transforms.cpp`
+- Pybind11 and GoogleTest fetched via `FetchContent` (not git submodules)
+- `pybind11_add_module` target compiling `src/module.cpp` and `src/transforms.cpp`
+- GoogleTest target in `tests/` for C++ unit tests, discovered via `gtest_discover_tests()`
 
 ## Interaction Rules
 
