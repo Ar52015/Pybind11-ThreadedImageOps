@@ -32,6 +32,16 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
     - [x] Symlink `compile_commands.json` to project root (`ln -s build/compile_commands.json .`) for clang-tidy LSP support.
     - [x] Add `build/`, `*.so`, `__pycache__/`, `.venv/`, and `compile_commands.json` to `.gitignore`.
 
+- **Resources**:
+    - [CMake Tutorial — Official Docs](https://cmake.org/cmake/help/latest/guide/tutorial/index.html) — Step-by-step intro to CMake. Read **Step 1: Getting Started** for the four core commands (`cmake_minimum_required`, `project`, `add_executable`, `target_sources`); read **Step 2: Adding a Library** for `add_library` and `target_link_libraries`.
+    - [Build systems — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/compiling.html) — CMake integration for pybind11. Focus on the **FetchContent** and **pybind11_add_module** sections for how to pull pybind11 and build a `.so` from CMake.
+    - [First steps — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/basics.html) — Covers `PYBIND11_MODULE`, `m.def()`, and basic type conversions. Read the full page — it's the minimum needed to write `module.cpp`.
+    - [pre-commit documentation](https://pre-commit.com/) — Official docs for the pre-commit hook framework. Read the **Adding pre-commit plugins** and **Creating new hooks** sections for `.pre-commit-config.yaml` syntax and local hook definitions.
+    - [Configuring Ruff](https://docs.astral.sh/ruff/configuration/) — Ruff linter/formatter configuration in `pyproject.toml`. Read the **Rule selection** section for how `select` and `ignore` work with rule code prefixes.
+    - [mypy configuration file](https://mypy.readthedocs.io/en/stable/config_file.html) — mypy config reference. Read the **The mypy configuration file** section for `[tool.mypy]` in `pyproject.toml`; skim **Strict mode** for which flags `strict = true` enables.
+    - [Clang-Format Style Options](https://clang.llvm.org/docs/ClangFormatStyleOptions.html) — Full reference for `.clang-format`. Read the **Configuring Style with clang-format** intro and **BasedOnStyle** for how predefined styles (Google, LLVM) work.
+    - [Clang-Tidy](https://clang.llvm.org/extra/clang-tidy/) — clang-tidy overview and check categories. Read the **Configuring Checks** section for `.clang-tidy` YAML syntax; browse the [checks list](https://clang.llvm.org/extra/clang-tidy/checks/list.html) for what `bugprone-*`, `modernize-*`, etc. cover.
+
 ---
 
 ## Day 1: RAII Wrapper and Zero-Copy NumPy Buffer Binding
