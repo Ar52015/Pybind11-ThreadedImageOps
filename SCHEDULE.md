@@ -44,7 +44,48 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
 
 ---
 
-## Day 1: RAII Wrapper and Zero-Copy NumPy Buffer Binding
+## Day 1: C++ Foundations I — Pointers, Memory, and Classes
+**Focus**: Header files, raw pointers, pointer arithmetic, classes, constructors, destructors, RAII, const correctness, exceptions
+**Load**: Level 3
+
+- **Objectives**:
+    1. You understand the C++ compilation model — why code is split into `.hpp` headers and `.cpp` source files, and what the compiler and linker each do.
+    2. You can declare, dereference, and do arithmetic on raw pointers to walk through a contiguous byte buffer.
+    3. You can define a class with a validating constructor (member initializer list), `const` getters, private data members, and a defaulted destructor.
+    4. You understand RAII — tying resource lifetime to object lifetime — and why `ImageBuffer`'s destructor is `= default` (it manages access, not allocation).
+
+- **Tasks**:
+
+    **Compilation Model & Headers**
+    - [ ] Read learncpp.com lessons **0.5** (compiler, linker, libraries), **2.11** (header files), and **2.12** (header guards / `#pragma once`).
+    - [ ] Read **15.2** (classes and header files) — this explains why the class definition goes in `.hpp` and method implementations can go in `.cpp`.
+
+    **Raw Pointers & Pointer Arithmetic**
+    - [ ] Read learncpp.com lessons **12.7** (introduction to pointers), **12.9** (pointers and `const`), and **17.9** (pointer arithmetic and subscripting).
+    - [ ] Write a small standalone program (outside the project) that heap-allocates a `uint8_t` array, walks it with pointer arithmetic to set each byte to a value, and prints the results. This mirrors what `transform_quadrant` will do in Day 4.
+
+    **Classes, Constructors, and Destructors**
+    - [ ] Read learncpp.com lessons **14.3** (member functions), **14.4** (`const` member functions), **14.5** (public/private access specifiers), **14.9** (constructors), **14.10** (member initializer lists), and **15.4** (destructors).
+    - [ ] Write a small class that: takes dimensions in its constructor (via member initializer list), validates them (throws `std::invalid_argument` if invalid), exposes `const` getters, and has an explicitly defaulted destructor (`= default`). This directly previews the `ImageBuffer` class.
+
+    **RAII & Exceptions**
+    - [ ] Read learncpp.com lesson **22.1** (introduction to smart pointers and move semantics) — the first half covers RAII with concrete examples. Read the [RAII page on cppreference](https://en.cppreference.com/w/cpp/language/raii.html) for the canonical definition.
+    - [ ] Read learncpp.com lesson **27.2** (basic exception handling: `throw`, `try`, `catch`). You only need this one lesson — pybind11 auto-translates C++ exceptions to Python exceptions.
+
+    **Templates (Reading Only)**
+    - [ ] Skim learncpp.com lesson **11.6** (function templates). The goal is to recognize angle-bracket syntax like `py::array_t<uint8_t>` — you will not write templates in this project.
+
+- **Resources**:
+    - [Introduction to the compiler, linker, and libraries (0.5)](https://www.learncpp.com/cpp-tutorial/introduction-to-the-compiler-linker-and-libraries/) — How C++ goes from source files to an executable. Continue to [2.11 — Header files](https://www.learncpp.com/cpp-tutorial/header-files/) and [2.12 — Header guards](https://www.learncpp.com/cpp-tutorial/header-guards/) for `#include` mechanics and `#pragma once`. Revisit [15.2 — Classes and header files](https://www.learncpp.com/cpp-tutorial/classes-and-header-files/) after reading the classes lessons.
+    - [Introduction to pointers (12.7)](https://www.learncpp.com/cpp-tutorial/introduction-to-pointers/) — Pointer declaration, dereferencing, and nullptr. Continue to [12.9 — Pointers and const](https://www.learncpp.com/cpp-tutorial/pointers-and-const/) for const pointer rules, then [17.9 — Pointer arithmetic and subscripting](https://www.learncpp.com/cpp-tutorial/pointer-arithmetic-and-subscripting/) for the offset math behind buffer traversal.
+    - [Member functions (14.3)](https://www.learncpp.com/cpp-tutorial/member-functions/) — Start of the classes arc. Read sequentially through [14.4](https://www.learncpp.com/cpp-tutorial/const-class-objects-and-const-member-functions/) (const members), [14.5](https://www.learncpp.com/cpp-tutorial/public-and-private-members-and-access-specifiers/) (access specifiers), skip to [14.9](https://www.learncpp.com/cpp-tutorial/introduction-to-constructors/) (constructors), [14.10](https://www.learncpp.com/cpp-tutorial/constructor-member-initializer-lists/) (member initializer lists). Finish with [15.4 — Introduction to destructors](https://www.learncpp.com/cpp-tutorial/introduction-to-destructors/).
+    - [Introduction to smart pointers and move semantics (22.1)](https://www.learncpp.com/cpp-tutorial/introduction-to-smart-pointers-move-semantics/) — The first half explains RAII: acquiring resources in constructors, releasing in destructors. Also read the [RAII page on cppreference](https://en.cppreference.com/w/cpp/language/raii.html) — it's short and canonical.
+    - [Basic exception handling (27.2)](https://www.learncpp.com/cpp-tutorial/basic-exception-handling/) — `throw`, `try`, `catch` mechanics. One lesson is enough — skip the rest of chapter 27 for now.
+    - [Function templates (11.6)](https://www.learncpp.com/cpp-tutorial/function-templates/) — Skim to recognize `template<typename T>` and angle-bracket type parameters. You don't need to write templates — just read them.
+
+---
+
+## Day 2: RAII Wrapper and Zero-Copy NumPy Buffer Binding
 **Focus**: `py::array_t` buffer protocol, RAII resource semantics, NumPy stride arithmetic, `py::buffer_info`
 **Load**: Level 3
 
@@ -86,7 +127,46 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
 
 ---
 
-## Day 2: Multi-Threaded Quadrant Transforms with GIL Release
+## Day 3: C++ Foundations II — Threads, Lambdas, and Concurrency
+**Focus**: Lambda expressions, lambda captures, `std::thread`, move semantics, object lifetime, scope-exit patterns
+**Load**: Level 3
+
+- **Objectives**:
+    1. You can write lambda expressions with explicit captures and understand the difference between capture-by-value and capture-by-reference.
+    2. You understand `std::thread` construction, `join()`, and why destroying a joinable thread calls `std::terminate`.
+    3. You understand move semantics enough to know why `std::thread` is move-only and how `std::vector<std::thread>` works with `emplace_back`.
+    4. You can reason about object lifetime and scope — why threads must be joined before the data they reference goes out of scope.
+
+- **Tasks**:
+
+    **Lambda Expressions**
+    - [ ] Read learncpp.com lessons **20.6** (introduction to lambdas) and **20.7** (lambda captures).
+    - [ ] Write a small program that creates a vector of integers, then uses a lambda with explicit captures to transform each element. Experiment with `[&]`, `[=]`, and `[x, &y]` to see the difference.
+
+    **Move Semantics**
+    - [ ] Read learncpp.com lessons **16.5** (returning std::vector — introduction to move semantics), **22.1** (revisit the second half on move semantics), **22.3** (move constructors and move assignment), and **22.4** (`std::move`).
+    - [ ] Understand the key insight: a move *transfers ownership* of resources instead of copying them. `std::thread` is move-only because two threads can't both own the same execution.
+        - Note: You don't need to write move constructors for this project. The goal is understanding why `threads.emplace_back(std::thread(...))` works but `threads.push_back(some_thread)` doesn't (without `std::move`).
+
+    **`std::thread` and Concurrency**
+    - [ ] Read the [std::thread cppreference page](https://en.cppreference.com/w/cpp/thread/thread.html) — focus on the constructor, `join()`, `detach()`, and the Examples section.
+    - [ ] Read the [Educative tutorial on modern C++ multithreading](https://www.educative.io/blog/modern-multithreading-and-concurrency-in-cpp) — focus on thread creation and joining sections.
+    - [ ] Write a small program that spawns 4 threads, each printing its thread ID and a message. Join all 4 in a loop. Then intentionally comment out the joins and observe the crash (`std::terminate`).
+
+    **Scope, Lifetime, and RAII for Threads**
+    - [ ] Read learncpp.com lesson **27.3** (exceptions, functions, and stack unwinding) — this explains how destructors run during exception propagation, which is why RAII-based thread joining matters.
+    - [ ] Understand the pattern: store threads in a `std::vector<std::thread>`, join them all in a scope-exit loop. If any thread's work throws before the loop, the remaining unjoined threads would crash the program — hence the RAII wrapper approach.
+
+- **Resources**:
+    - [Introduction to lambdas (20.6)](https://www.learncpp.com/cpp-tutorial/introduction-to-lambdas-anonymous-functions/) — Lambda syntax, default captures, and return types. Continue to [20.7 — Lambda captures](https://www.learncpp.com/cpp-tutorial/lambda-captures/) for `[&]`, `[=]`, and explicit captures — critical for understanding how `std::thread` receives its callable.
+    - [Returning std::vector, and an introduction to move semantics (16.5)](https://www.learncpp.com/cpp-tutorial/returning-stdvector-and-an-introduction-to-move-semantics/) — Gentle first exposure to move semantics. Then read [22.3 — Move constructors and move assignment](https://www.learncpp.com/cpp-tutorial/move-constructors-and-move-assignment/) and [22.4 — std::move](https://www.learncpp.com/cpp-tutorial/stdmove/) for the mechanics of ownership transfer.
+    - [std::thread — cppreference.com](https://en.cppreference.com/w/cpp/thread/thread.html) — Full reference. Focus on **Member functions** (constructor, `join`, `detach`) and the note that destroying a joinable thread calls `std::terminate`. Read the **Example** section for working code.
+    - [A tutorial on modern multithreading and concurrency in C++](https://www.educative.io/blog/modern-multithreading-and-concurrency-in-cpp) — Beginner-friendly walkthrough with examples. Read the thread creation and joining sections; skip the mutex/condition variable parts until later.
+    - [Exceptions, functions, and stack unwinding (27.3)](https://www.learncpp.com/cpp-tutorial/exceptions-functions-and-stack-unwinding/) — How exceptions unwind the call stack and trigger destructors. Key for understanding why threads must be joined in a scope-exit RAII pattern.
+
+---
+
+## Day 4: Multi-Threaded Quadrant Transforms with GIL Release
 **Focus**: `std::thread`, `py::gil_scoped_release`, quadrant partitioning, thread join safety, data races
 **Load**: Level 4
 
@@ -137,7 +217,7 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
 
 ---
 
-## Day 3: Performance Benchmarking and Validation Proof
+## Day 5: Performance Benchmarking and Validation Proof
 **Focus**: Wall-clock timing, memory profiling, pytest-benchmark, scaling analysis, acceptance harness
 **Load**: Level 3
 
@@ -179,7 +259,7 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
 
 ---
 
-## Day 4: DevOps & Delivery
+## Day 6: DevOps & Delivery
 **Focus**: GitHub Actions CI, Makefile, build automation, lint enforcement
 **Load**: Level 3
 
