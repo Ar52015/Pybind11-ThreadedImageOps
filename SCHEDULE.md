@@ -13,46 +13,50 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
 **Load**: Level 2
 
 - **Tasks**:
-    - [x] Create the top-level directory layout: `src/` for C++ sources, `include/` for headers, `python/` for the driver script and tests, and `build/` (gitignored) for CMake artifacts.
-    - [x] Initialize the Python project with `uv init` (generates `pyproject.toml`, `.python-version`, `uv.lock`). Add dependencies via `uv add numpy` and `uv add --dev pytest pytest-benchmark ruff mypy`. Run `uv sync` to create the `.venv`.
+    - [ ] Create the top-level directory layout: `src/` for C++ sources, `include/` for headers, `python/` for the driver script and tests, and `build/` (gitignored) for CMake artifacts.
+    - [ ] Initialize the Python project with `uv init` (generates `pyproject.toml`, `.python-version`, `uv.lock`). Add dependencies via `uv add numpy` and `uv add --dev pytest pytest-benchmark ruff mypy pre-commit`. Run `uv sync` to create the `.venv`.
         - Note: Pin the NumPy version explicitly in `pyproject.toml` (e.g. `numpy>=2.4,<3`) so the ABI stays stable across rebuilds. Commit `uv.lock` for reproducible installs.
-    - [x] Configure pre-commit hooks (`.pre-commit-config.yaml`):
+    - [ ] Configure pre-commit hooks (`.pre-commit-config.yaml`):
         - `trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-toml`
-        - Local hooks: `ruff check --fix`, `ruff format`, `mypy .`, `pytest --cov` (all via `uv run`)
-        - C++ hooks: `clang-format -i`, `clang-tidy`, `ctest --test-dir build --output-on-failure`
+        - Local hooks: `ruff check --fix`, `ruff format`, `mypy .`, `pytest --benchmark-disable` (all via `uv run`)
+        - C++ hooks: `clang-format -i`, `clang-tidy --fix`, `ctest --test-dir build --output-on-failure`
         - Note: Run `uv run pre-commit install` to activate. Hooks must pass before any commit lands.
-    - [x] Configure ruff in `pyproject.toml`: enable rule sets `E`, `F`, `I` (isort), `UP` (pyupgrade), `NPY` (NumPy-specific).
-    - [x] Configure strict mypy in `pyproject.toml` (`[tool.mypy]` with `strict = true`).
-    - [x] Add a `.clang-format` file for C++ source formatting (`BasedOnStyle: Google`).
-    - [x] Add a `.clang-tidy` config with `concurrency-*`, `google-*`, `performance-*`, `readability-*`, `bugprone-*`, `modernize-*` checks.
-    - [x] Author the root `CMakeLists.txt` — `cmake_minimum_required(VERSION 3.16)`, `CMAKE_CXX_STANDARD 17`, `CMAKE_EXPORT_COMPILE_COMMANDS ON`, `FetchContent` for pybind11 (`v3.0.2`) and GoogleTest (`v1.17.0`).
-    - [x] Add a minimal `src/module.cpp` with `PYBIND11_MODULE` entry point exposing a `noop()` function returning a string literal.
-    - [x] Add stub `src/transforms.cpp` and test files in `tests/` (`test_transform_quadrant.cpp`, `test_quadrant_partitioning.cpp`, `test_thread_safety.cpp`).
-    - [x] Verify the full build-import cycle: `cmake -B build && cmake --build build`, then `PYTHONPATH=build uv run python -c "import threaded_image_ops; print(threaded_image_ops.noop())"` prints `hello from C++`.
-    - [x] Symlink `compile_commands.json` to project root (`ln -s build/compile_commands.json .`) for clang-tidy LSP support.
-    - [x] Add `build/`, `*.so`, `__pycache__/`, `.venv/`, and `compile_commands.json` to `.gitignore`.
+    - [ ] Configure ruff in `pyproject.toml`: enable rule sets `E`, `F`, `I` (isort), `UP` (pyupgrade), `NPY` (NumPy-specific).
+    - [ ] Configure strict mypy in `pyproject.toml` (`[tool.mypy]` with `strict = true`).
+    - [ ] Add a `.clang-format` file for C++ source formatting (`BasedOnStyle: Google`).
+        - Note: clang-format enforces consistent style across all `.cpp` and `.hpp` files. The Google style is widely used and well-documented.
+    - [ ] Add a `.clang-tidy` config with `concurrency-*`, `google-*`, `performance-*`, `readability-*`, `bugprone-*`, `modernize-*` checks.
+        - Note: clang-tidy is a static analyzer, not just a formatter. It catches real bugs (use-after-move, thread-safety violations) that the compiler misses.
+    - [ ] Author the root `CMakeLists.txt` — `cmake_minimum_required(VERSION 3.16)`, `CMAKE_CXX_STANDARD 17`, `CMAKE_EXPORT_COMPILE_COMMANDS ON`, `FetchContent` for pybind11 (`v3.0.2`) and GoogleTest (`v1.17.0`).
+        - Note: pybind11 v3.0.3 exists as of 2026-03-31, but v3.0.2 is stable and already pinned in the project. GoogleTest v1.17.0 requires C++17 which matches our standard.
+    - [ ] Add a minimal `src/module.cpp` with `PYBIND11_MODULE` entry point exposing a `noop()` function returning a string literal.
+    - [ ] Add stub `src/transforms.cpp` and test files in `tests/` (`test_transform_quadrant.cpp`, `test_quadrant_partitioning.cpp`, `test_thread_safety.cpp`).
+    - [ ] Verify the full build-import cycle: `cmake -B build && cmake --build build`, then `PYTHONPATH=build uv run python -c "import threaded_image_ops; print(threaded_image_ops.noop())"` prints `hello from C++`.
+    - [ ] Symlink `compile_commands.json` to project root (`ln -s build/compile_commands.json .`) for clang-tidy LSP support.
+    - [ ] Add `build/`, `*.so`, `__pycache__/`, `.venv/`, and `compile_commands.json` to `.gitignore`.
 
 - **Resources**:
-    - [CMake Tutorial — Official Docs](https://cmake.org/cmake/help/latest/guide/tutorial/index.html) — Step-by-step intro to CMake. Read **Step 1: Getting Started** for the four core commands (`cmake_minimum_required`, `project`, `add_executable`, `target_sources`); read **Step 2: Adding a Library** for `add_library` and `target_link_libraries`.
+    - [CMake Tutorial — Official Docs](https://cmake.org/cmake/help/latest/guide/tutorial/index.html) — Step-by-step intro to CMake. Read **Step 1: Getting Started** for the four core commands (`cmake_minimum_required`, `project`, `add_executable`, `target_sources`); read **Step 2: Adding a Library** for `add_library` and `target_link_libraries`. This is a Tier 5 technology — read the full first two steps, don't skim.
     - [Build systems — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/compiling.html) — CMake integration for pybind11. Focus on the **FetchContent** and **pybind11_add_module** sections for how to pull pybind11 and build a `.so` from CMake.
     - [First steps — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/basics.html) — Covers `PYBIND11_MODULE`, `m.def()`, and basic type conversions. Read the full page — it's the minimum needed to write `module.cpp`.
-    - [pre-commit documentation](https://pre-commit.com/) — Official docs for the pre-commit hook framework. Read the **Adding pre-commit plugins** and **Creating new hooks** sections for `.pre-commit-config.yaml` syntax and local hook definitions.
-    - [Configuring Ruff](https://docs.astral.sh/ruff/configuration/) — Ruff linter/formatter configuration in `pyproject.toml`. Read the **Rule selection** section for how `select` and `ignore` work with rule code prefixes.
-    - [mypy configuration file](https://mypy.readthedocs.io/en/stable/config_file.html) — mypy config reference. Read the **The mypy configuration file** section for `[tool.mypy]` in `pyproject.toml`; skim **Strict mode** for which flags `strict = true` enables.
-    - [Clang-Format Style Options](https://clang.llvm.org/docs/ClangFormatStyleOptions.html) — Full reference for `.clang-format`. Read the **Configuring Style with clang-format** intro and **BasedOnStyle** for how predefined styles (Google, LLVM) work.
-    - [Clang-Tidy](https://clang.llvm.org/extra/clang-tidy/) — clang-tidy overview and check categories. Read the **Configuring Checks** section for `.clang-tidy` YAML syntax; browse the [checks list](https://clang.llvm.org/extra/clang-tidy/checks/list.html) for what `bugprone-*`, `modernize-*`, etc. cover.
+    - [pre-commit documentation](https://pre-commit.com/) — Official docs for the pre-commit hook framework. Read **Adding pre-commit plugins** and **Creating new hooks** for `.pre-commit-config.yaml` syntax and local hook definitions.
+    - [Configuring Ruff](https://docs.astral.sh/ruff/configuration/) — Ruff linter/formatter configuration in `pyproject.toml`. Read **Rule selection** for how `select` and `ignore` work with rule code prefixes.
+    - [mypy configuration file](https://mypy.readthedocs.io/en/stable/config_file.html) — mypy config reference. Read **The mypy configuration file** for `[tool.mypy]` in `pyproject.toml`; skim **Strict mode** for which flags `strict = true` enables.
+    - [Clang-Format Style Options](https://clang.llvm.org/docs/ClangFormatStyleOptions.html) — Full reference for `.clang-format`. Read **Configuring Style with clang-format** intro and **BasedOnStyle** for how predefined styles (Google, LLVM) work.
+    - [Clang-Tidy](https://clang.llvm.org/extra/clang-tidy/) — clang-tidy overview and check categories. Read **Configuring Checks** for `.clang-tidy` YAML syntax; browse the [checks list](https://clang.llvm.org/extra/clang-tidy/checks/list.html) for what `bugprone-*`, `modernize-*`, etc. cover.
 
 ---
 
-## Day 1: C++ Foundations I — Pointers, Memory, and Classes
+## Day 1: C++ Foundations I — Pointers, Memory, and Classes (Foundation)
 **Focus**: Header files, raw pointers, pointer arithmetic, classes, constructors, destructors, RAII, const correctness, exceptions
 **Load**: Level 3
+**Prepares for**: Day 3 — RAII Wrapper and Zero-Copy NumPy Buffer Binding
 
 - **Objectives**:
-    1. You understand the C++ compilation model — why code is split into `.hpp` headers and `.cpp` source files, and what the compiler and linker each do.
+    1. You can explain the C++ compilation model — why code is split into `.hpp` headers and `.cpp` source files, and what the compiler and linker each do.
     2. You can declare, dereference, and do arithmetic on raw pointers to walk through a contiguous byte buffer.
-    3. You can define a class with a validating constructor (member initializer list), `const` getters, private data members, and a defaulted destructor.
-    4. You understand RAII — tying resource lifetime to object lifetime — and why `ImageBuffer`'s destructor is `= default` (it manages access, not allocation).
+    3. You can write a class with a validating constructor (member initializer list), `const` getters, private data members, and a defaulted destructor.
+    4. You can explain RAII — tying resource lifetime to object lifetime — and why `ImageBuffer`'s destructor will be `= default` (it manages access, not allocation).
 
 - **Tasks**:
 
@@ -62,18 +66,16 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
 
     **Raw Pointers & Pointer Arithmetic**
     - [ ] Read learncpp.com lessons **12.7** (introduction to pointers), **12.9** (pointers and `const`), and **17.9** (pointer arithmetic and subscripting).
-    - [ ] Write a small standalone program (outside the project) that heap-allocates a `uint8_t` array, walks it with pointer arithmetic to set each byte to a value, and prints the results. This mirrors what `transform_quadrant` will do in Day 4.
+    - [ ] **Exercise 1**: Write a standalone program (outside the project) that heap-allocates a `uint8_t` array of 256 elements, walks it with pointer arithmetic to set each byte to its index value, and prints the results.
+        - Expected output: `0 1 2 3 4 ... 254 255` (256 space-separated values). This mirrors what `transform_quadrant` will do in Day 5 — walking a buffer with raw pointer math.
 
-    **Classes, Constructors, and Destructors**
+    **Classes, Constructors, Destructors, RAII & Exceptions**
     - [ ] Read learncpp.com lessons **14.3** (member functions), **14.4** (`const` member functions), **14.5** (public/private access specifiers), **14.9** (constructors), **14.10** (member initializer lists), and **15.4** (destructors).
-    - [ ] Write a small class that: takes dimensions in its constructor (via member initializer list), validates them (throws `std::invalid_argument` if invalid), exposes `const` getters, and has an explicitly defaulted destructor (`= default`). This directly previews the `ImageBuffer` class.
-
-    **RAII & Exceptions**
     - [ ] Read learncpp.com lesson **22.1** (introduction to smart pointers and move semantics) — the first half covers RAII with concrete examples. Read the [RAII page on cppreference](https://en.cppreference.com/w/cpp/language/raii.html) for the canonical definition.
     - [ ] Read learncpp.com lesson **27.2** (basic exception handling: `throw`, `try`, `catch`). You only need this one lesson — pybind11 auto-translates C++ exceptions to Python exceptions.
-
-    **Templates (Reading Only)**
     - [ ] Skim learncpp.com lesson **11.6** (function templates). The goal is to recognize angle-bracket syntax like `py::array_t<uint8_t>` — you will not write templates in this project.
+    - [ ] **Exercise 2**: Write a class `BufferView` that: takes `uint8_t* data`, `int width`, `int height` in its constructor (via member initializer list), validates them (throws `std::invalid_argument` if any dimension is ≤ 0 or data is `nullptr`), exposes `const` getters for all three, and has an explicitly defaulted destructor (`= default`).
+        - Expected output: construct a `BufferView` with valid args and print `width=640 height=480`. Then construct one with `height=0` and catch the exception, printing `caught: invalid dimension`. This class is a simplified version of the `ImageBuffer` you'll implement in Day 3.
 
 - **Resources**:
     - [Introduction to the compiler, linker, and libraries (0.5)](https://www.learncpp.com/cpp-tutorial/introduction-to-the-compiler-linker-and-libraries/) — How C++ goes from source files to an executable. Continue to [2.11 — Header files](https://www.learncpp.com/cpp-tutorial/header-files/) and [2.12 — Header guards](https://www.learncpp.com/cpp-tutorial/header-guards/) for `#include` mechanics and `#pragma once`. Revisit [15.2 — Classes and header files](https://www.learncpp.com/cpp-tutorial/classes-and-header-files/) after reading the classes lessons.
@@ -85,7 +87,39 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
 
 ---
 
-## Day 2: RAII Wrapper and Zero-Copy NumPy Buffer Binding
+## Day 2: Pybind11 & NumPy Buffer Protocol (Foundation)
+**Focus**: Python-C++ binding model, `py::module_`, `py::class_`, `py::array_t`, buffer protocol, `py::buffer_info`
+**Load**: Level 3
+**Prepares for**: Day 3 — RAII Wrapper and Zero-Copy NumPy Buffer Binding
+
+- **Objectives**:
+    1. You can explain how pybind11 exposes C++ classes and functions to Python — the role of `PYBIND11_MODULE`, `py::class_`, `py::init`, and `m.def()`.
+    2. You can write a pybind11 binding that accepts a `py::array_t<uint8_t>` and extracts `py::buffer_info` from it, reading shape, strides, and the raw data pointer.
+    3. You can explain the NumPy buffer protocol — how `py::array_t` wraps a contiguous memory buffer with shape and stride metadata, and why `c_style | forcecast` guarantees row-major layout.
+
+- **Tasks**:
+
+    **Pybind11 Binding Model**
+    - [ ] Read the [First steps — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/basics.html) page in full. Focus on how `PYBIND11_MODULE` defines the entry point, how `m.def()` binds free functions, and how return value policies work.
+    - [ ] Read the [Object-oriented code — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/classes.html) page. Focus on **Creating bindings for a custom type** and **Instance and static fields** — these cover `py::class_`, `py::init`, and property definitions.
+    - [ ] **Exercise 1**: Write a small C++ file with a `struct Point { int x; int y; }` and a pybind11 module that binds it with a constructor and read-only `.x`, `.y` properties. Build with CMake and verify from Python: `from mymod import Point; p = Point(3, 4); print(p.x, p.y)`.
+        - Expected output: `3 4`. This proves you can set up the full pybind11 binding pipeline — CMake build, module import, class instantiation from Python.
+
+    **NumPy Buffer Protocol & `py::array_t`**
+    - [ ] Read the [NumPy — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html) page. Focus on the **Buffer protocol** and **Arrays** sections for how `py::buffer_info` maps to NumPy internals (shape, strides, ptr, ndim). Skip **Vectorizing functions** — irrelevant here.
+    - [ ] Read [The N-dimensional array (ndarray) — NumPy Manual](https://numpy.org/doc/stable/reference/arrays.ndarray.html). Read **Internal memory layout of an ndarray** for the stride formula and contiguity guarantees; skim **Array attributes** for `.ctypes`, `.strides`, `.flags`.
+    - [ ] **Exercise 2**: Write a pybind11 function `describe_array(py::array_t<uint8_t> arr)` that extracts `py::buffer_info`, prints `ndim`, `shape`, `strides`, and the raw pointer address as `uintptr_t`. Call it from Python with `np.zeros((4, 4, 3), dtype=np.uint8)` and verify the output.
+        - Expected output: `ndim=3 shape=[4, 4, 3] strides=[12, 3, 1] ptr=<some address>`. The strides `[12, 3, 1]` confirm row-major C-contiguous layout (4 cols × 3 channels = 12 bytes per row). This previews exactly how `ImageBuffer`'s constructor will extract buffer metadata in Day 3.
+
+- **Resources**:
+    - [First steps — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/basics.html) — `PYBIND11_MODULE`, `m.def()`, basic type conversions. Read the full page.
+    - [Object-oriented code — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/classes.html) — `py::class_`, `py::init`, properties. Focus on **Creating bindings for a custom type** and **Instance and static fields**.
+    - [NumPy — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html) — `py::array_t`, buffer protocol, stride access. Focus on **Buffer protocol** and **Arrays**; skip **Vectorizing functions**.
+    - [The N-dimensional array (ndarray) — NumPy Manual](https://numpy.org/doc/stable/reference/arrays.ndarray.html) — NumPy's memory model. Read **Internal memory layout of an ndarray** and **Array attributes** for `.ctypes`, `.strides`, `.flags`.
+
+---
+
+## Day 3: RAII Wrapper and Zero-Copy NumPy Buffer Binding
 **Focus**: `py::array_t` buffer protocol, RAII resource semantics, NumPy stride arithmetic, `py::buffer_info`
 **Load**: Level 3
 
@@ -110,63 +144,62 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
     - [ ] Expose read-only properties: `.height`, `.width`, `.channels`.
     - [ ] Bind a `data_ptr()` method that returns the raw pointer as `uintptr_t` — this is the diagnostic hook Python will use to prove zero-copy.
 
-    **Verification Script**
+    **Verification Script (Python)**
     - [ ] Write `python/test_zerocopy.py`: allocate a NumPy array with `np.zeros((4096, 4096, 3), dtype=np.uint8)`, pass it to `ImageBuffer`, and assert that `buf.data_ptr() == arr.ctypes.data` — same integer address means zero copies.
+        - Note: This is an integration test — it crosses the FFI boundary (Python → C++ → Python). It verifies the zero-copy invariant that is the project's core constraint.
     - [ ] Assert `buf.height == 4096`, `buf.width == 4096`, `buf.channels == 3`.
 
 - **Acceptance Criteria**:
-    - `uv run python python/test_zerocopy.py` exits 0 and prints no assertion errors.
+    - `PYTHONPATH=build uv run pytest python/test_zerocopy.py -v` exits 0 and prints no assertion errors.
     - The `data_ptr()` returned by the C++ side is byte-identical to `ndarray.ctypes.data` on the Python side — proving no intermediate copy was allocated.
     - Passing a 2D array (`np.zeros((100, 100))`) raises a Python `ValueError` originating from the C++ `std::invalid_argument`.
 
 - **Resources**:
-    - [NumPy — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html) — Official guide to `py::array_t`, buffer protocol, and stride access. Read the **Buffer protocol** and **Arrays** sections for how `py::buffer_info` maps to NumPy internals; the **Vectorizing functions** section is irrelevant here.
-    - [Object-oriented code — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/classes.html) — Binding C++ classes to Python. Focus on **Creating bindings for a custom type** and **Instance and static fields** — these cover `py::class_`, `py::init`, and property definitions.
-    - [The N-dimensional array (ndarray) — NumPy Manual](https://numpy.org/doc/stable/reference/arrays.ndarray.html) — NumPy's memory model. Read **Internal memory layout of an ndarray** for the stride formula and contiguity guarantees; skim **Array attributes** for `.ctypes`, `.strides`, `.flags`.
-    - [RAII — cppreference.com](https://en.cppreference.com/w/cpp/language/raii.html) — Canonical definition of RAII. Read the full page — it's short. Pay attention to the **Standard library** section listing which STL types follow RAII, and the bad-vs-good mutex example.
+    - [NumPy — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html) — Re-read **Buffer protocol** and **Arrays** from Day 2. This time focus on `py::buffer_info` field access patterns (`.ptr`, `.ndim`, `.shape`, `.strides`, `.readonly`).
+    - [Object-oriented code — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/classes.html) — Re-read **Creating bindings for a custom type**. Focus on `py::init` constructor binding and `def_property_readonly` for exposing getters.
+    - [RAII — cppreference.com](https://en.cppreference.com/w/cpp/language/raii.html) — Canonical definition of RAII. Read the full page — it's short. Pay attention to the bad-vs-good mutex example.
+    - [The N-dimensional array (ndarray) — NumPy Manual](https://numpy.org/doc/stable/reference/arrays.ndarray.html) — Reference for `.ctypes.data`, `__array_interface__`, and `flags` attributes used in the zero-copy assertion.
 
 ---
 
-## Day 3: C++ Foundations II — Threads, Lambdas, and Concurrency
-**Focus**: Lambda expressions, lambda captures, `std::thread`, move semantics, object lifetime, scope-exit patterns
+## Day 4: C++ Foundations II — Threads, Lambdas, Concurrency, and GoogleTest (Foundation)
+**Focus**: Lambda expressions, lambda captures, `std::thread`, move semantics, object lifetime, scope-exit patterns, GoogleTest basics
 **Load**: Level 3
+**Prepares for**: Day 5 — Multi-Threaded Quadrant Transforms with GIL Release
 
 - **Objectives**:
-    1. You can write lambda expressions with explicit captures and understand the difference between capture-by-value and capture-by-reference.
-    2. You understand `std::thread` construction, `join()`, and why destroying a joinable thread calls `std::terminate`.
-    3. You understand move semantics enough to know why `std::thread` is move-only and how `std::vector<std::thread>` works with `emplace_back`.
-    4. You can reason about object lifetime and scope — why threads must be joined before the data they reference goes out of scope.
+    1. You can write lambda expressions with explicit captures and explain the difference between capture-by-value and capture-by-reference.
+    2. You can construct `std::thread` objects, `join()` them, and explain why destroying a joinable thread calls `std::terminate`.
+    3. You can write a GoogleTest test case using `TEST()`, `EXPECT_EQ`, and `ASSERT_*` macros, and run it with `ctest`.
 
 - **Tasks**:
 
-    **Lambda Expressions**
+    **Lambda Expressions & Move Semantics**
     - [ ] Read learncpp.com lessons **20.6** (introduction to lambdas) and **20.7** (lambda captures).
-    - [ ] Write a small program that creates a vector of integers, then uses a lambda with explicit captures to transform each element. Experiment with `[&]`, `[=]`, and `[x, &y]` to see the difference.
-
-    **Move Semantics**
-    - [ ] Read learncpp.com lessons **16.5** (returning std::vector — introduction to move semantics), **22.1** (revisit the second half on move semantics), **22.3** (move constructors and move assignment), and **22.4** (`std::move`).
-    - [ ] Understand the key insight: a move *transfers ownership* of resources instead of copying them. `std::thread` is move-only because two threads can't both own the same execution.
+    - [ ] Read learncpp.com lessons **16.5** (returning std::vector — introduction to move semantics) and **22.4** (`std::move`).
         - Note: You don't need to write move constructors for this project. The goal is understanding why `threads.emplace_back(std::thread(...))` works but `threads.push_back(some_thread)` doesn't (without `std::move`).
+    - [ ] **Exercise 1**: Write a program that creates a `std::vector<int>` with values `{1, 2, 3, 4, 5}`, then uses `std::for_each` with a lambda that captures a `multiplier` by value and prints each element multiplied. Then change the capture to by-reference, modify `multiplier` inside the lambda, and observe the difference.
+        - Expected output (capture by value): `2 4 6 8 10` (with `multiplier = 2`). Then (capture by reference, incrementing multiplier each call): `2 6 12 20 30`. This demonstrates how capture mode affects shared state — critical for understanding what `std::thread` captures from its caller.
 
-    **`std::thread` and Concurrency**
+    **`std::thread`, GoogleTest, and Scope-Exit Patterns**
     - [ ] Read the [std::thread cppreference page](https://en.cppreference.com/w/cpp/thread/thread.html) — focus on the constructor, `join()`, `detach()`, and the Examples section.
-    - [ ] Read the [Educative tutorial on modern C++ multithreading](https://www.educative.io/blog/modern-multithreading-and-concurrency-in-cpp) — focus on thread creation and joining sections.
-    - [ ] Write a small program that spawns 4 threads, each printing its thread ID and a message. Join all 4 in a loop. Then intentionally comment out the joins and observe the crash (`std::terminate`).
-
-    **Scope, Lifetime, and RAII for Threads**
     - [ ] Read learncpp.com lesson **27.3** (exceptions, functions, and stack unwinding) — this explains how destructors run during exception propagation, which is why RAII-based thread joining matters.
-    - [ ] Understand the pattern: store threads in a `std::vector<std::thread>`, join them all in a scope-exit loop. If any thread's work throws before the loop, the remaining unjoined threads would crash the program — hence the RAII wrapper approach.
+    - [ ] Read the [GoogleTest Primer](https://google.github.io/googletest/primer.html) — focus on **Simple Tests**, **Assertions**, and **Test Fixtures**. Then read [Quickstart: Building with CMake](https://google.github.io/googletest/quickstart-cmake.html) for how `FetchContent_Declare`, `enable_testing()`, and `gtest_discover_tests()` work together.
+    - [ ] **Exercise 2**: Write a program that spawns 4 `std::thread` instances, each printing its thread index and squaring a value in a shared `std::array<int, 4>` (each thread writes to its own index — no overlap). Join all 4 in a loop. Then write a GoogleTest test file that uses `TEST()` and `EXPECT_EQ` to verify each element is correctly squared. Build and run with `ctest`.
+        - Expected output: `ctest` reports all tests passed. The console output from the threads may be interleaved (that's expected — threads run concurrently). This previews the exact pattern of Day 5: partitioned writes to non-overlapping regions, verified by unit tests.
+        - Note: The threads in this exercise write to non-overlapping indices of a shared array — the same safety model as the quadrant transforms. Understanding why this is safe without mutexes is the key insight for Day 5.
 
 - **Resources**:
-    - [Introduction to lambdas (20.6)](https://www.learncpp.com/cpp-tutorial/introduction-to-lambdas-anonymous-functions/) — Lambda syntax, default captures, and return types. Continue to [20.7 — Lambda captures](https://www.learncpp.com/cpp-tutorial/lambda-captures/) for `[&]`, `[=]`, and explicit captures — critical for understanding how `std::thread` receives its callable.
-    - [Returning std::vector, and an introduction to move semantics (16.5)](https://www.learncpp.com/cpp-tutorial/returning-stdvector-and-an-introduction-to-move-semantics/) — Gentle first exposure to move semantics. Then read [22.3 — Move constructors and move assignment](https://www.learncpp.com/cpp-tutorial/move-constructors-and-move-assignment/) and [22.4 — std::move](https://www.learncpp.com/cpp-tutorial/stdmove/) for the mechanics of ownership transfer.
-    - [std::thread — cppreference.com](https://en.cppreference.com/w/cpp/thread/thread.html) — Full reference. Focus on **Member functions** (constructor, `join`, `detach`) and the note that destroying a joinable thread calls `std::terminate`. Read the **Example** section for working code.
-    - [A tutorial on modern multithreading and concurrency in C++](https://www.educative.io/blog/modern-multithreading-and-concurrency-in-cpp) — Beginner-friendly walkthrough with examples. Read the thread creation and joining sections; skip the mutex/condition variable parts until later.
+    - [Introduction to lambdas (20.6)](https://www.learncpp.com/cpp-tutorial/introduction-to-lambdas-anonymous-functions/) — Lambda syntax, default captures, return types. Continue to [20.7 — Lambda captures](https://www.learncpp.com/cpp-tutorial/lambda-captures/) for `[&]`, `[=]`, and explicit captures — critical for understanding how `std::thread` receives its callable.
+    - [Returning std::vector, and an introduction to move semantics (16.5)](https://www.learncpp.com/cpp-tutorial/returning-stdvector-and-an-introduction-to-move-semantics/) — Gentle first exposure to move semantics. Then read [22.4 — std::move](https://www.learncpp.com/cpp-tutorial/stdmove/) for the mechanics of ownership transfer.
+    - [std::thread — cppreference.com](https://en.cppreference.com/w/cpp/thread/thread.html) — Full reference. Focus on **Member functions** (constructor, `join`, `detach`) and the note that destroying a joinable thread calls `std::terminate`. Read the **Example** section.
     - [Exceptions, functions, and stack unwinding (27.3)](https://www.learncpp.com/cpp-tutorial/exceptions-functions-and-stack-unwinding/) — How exceptions unwind the call stack and trigger destructors. Key for understanding why threads must be joined in a scope-exit RAII pattern.
+    - [GoogleTest Primer](https://google.github.io/googletest/primer.html) — `TEST()`, `EXPECT_*`, `ASSERT_*`, test fixtures. Read **Simple Tests** and **Assertions** sections.
+    - [Quickstart: Building with CMake — GoogleTest](https://google.github.io/googletest/quickstart-cmake.html) — `FetchContent_Declare`, `enable_testing()`, `gtest_discover_tests()`. Read the full page.
 
 ---
 
-## Day 4: Multi-Threaded Quadrant Transforms with GIL Release
+## Day 5: Multi-Threaded Quadrant Transforms with GIL Release
 **Focus**: `std::thread`, `py::gil_scoped_release`, quadrant partitioning, thread join safety, data races
 **Load**: Level 4
 
@@ -182,16 +215,15 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
         - Note: Keep the transform trivial. The point is proving concurrent memory access, not image processing. Inversion is ideal because it's visually verifiable and commutative (applying it twice restores the original).
     - [ ] Implement `process_quadrants(ImageBuffer& buf)` that computes the four row-ranges `[0, H/4)`, `[H/4, H/2)`, `[H/2, 3H/4)`, `[3H/4, H)`, constructs four `std::thread` objects each calling `transform_quadrant` with the appropriate slice, and joins all four.
         - Note: Use integer division. If height is not divisible by 4, the last quadrant absorbs the remainder rows — off-by-one here is a classic bug.
-    - [ ] Wrap all four `std::thread` objects in a local `std::vector<std::thread>` and join them in a scope-exit loop (or use a small RAII thread-joiner wrapper). This guarantees no thread is left detached if an earlier join throws.
+    - [ ] Wrap all four `std::thread` objects in a local `std::vector<std::thread>` and join them in a scope-exit loop. This guarantees no thread is left detached if an earlier join throws.
 
     **GIL Release (Binding)**
     - [ ] Bind `process_quadrants` in `src/module.cpp` using `py::call_guard<py::gil_scoped_release>()` so the GIL is released for the entire duration of the C++ call.
         - Note: `call_guard` is cleaner than manually scoping `py::gil_scoped_release release;` inside the function body. It applies RAII at the binding layer rather than polluting C++ logic.
-    - [ ] Alternatively, if the function needs pre- or post-GIL work, use an explicit `py::gil_scoped_release` block within the bound lambda. Document which approach was chosen and why.
 
-    **C++ Unit Tests (Google Test)**
-    - [ ] Add a `tests/` directory for C++ tests. Add a CMake target (`add_executable` + `target_link_libraries` with `GTest::gtest_main`) and enable `gtest_discover_tests()`.
+    **C++ Unit Tests (GoogleTest)**
     - [ ] Write `tests/test_transform_quadrant.cpp` — test `transform_quadrant` on a small heap-allocated buffer (e.g. 8x8x3). Verify every byte is inverted. Verify double-inversion restores the original.
+        - Note: This is a unit test — it tests pure C++ logic in isolation, no Python involved. It catches transform correctness bugs before the FFI layer adds complexity.
     - [ ] Write `tests/test_quadrant_partitioning.cpp` — test that `process_quadrants` covers `[0, H)` exactly for heights divisible by 4, not divisible by 4, and edge cases (height < 4, height = 1).
     - [ ] Write `tests/test_thread_safety.cpp` — run `process_quadrants` on a known buffer and verify the result is deterministic across repeated runs (non-overlapping writes should produce identical output every time).
         - Note: This does not replace ThreadSanitizer — it catches logical races (wrong output), not memory races.
@@ -210,14 +242,15 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
 
 - **Resources**:
     - [Miscellaneous — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/advanced/misc.html) — GIL management in pybind11. Read the **Global Interpreter Lock (GIL)** section — it covers `gil_scoped_release`, `gil_scoped_acquire`, and `call_guard`. This is the single most critical section for this day's work.
-    - [std::thread — cppreference.com](https://en.cppreference.com/w/cpp/thread/thread.html) — Full reference for `std::thread`. Read **Member functions** (constructor, `join`, `detach`) and note the precondition: destroying a joinable thread calls `std::terminate`.
-    - [Build systems — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/compiling.html) — CMake integration details. Read the **FetchContent** and **pybind11_add_module** sections for linking additional source files into the module target.
-    - [pybind/cmake_example — GitHub](https://github.com/pybind/cmake_example) — Reference implementation of a CMake-based pybind11 project. Study the `CMakeLists.txt` for how `pybind11_add_module` is invoked and how source files are listed.
-    - [Quickstart: Building with CMake — GoogleTest](https://google.github.io/googletest/quickstart-cmake.html) — Official guide to FetchContent + GoogleTest. Read the full page — it walks through `FetchContent_Declare`, `enable_testing()`, and `gtest_discover_tests()` end to end.
+    - [std::thread — cppreference.com](https://en.cppreference.com/w/cpp/thread/thread.html) — Re-read the constructor and `join()` sections from Day 4. Focus on the precondition: destroying a joinable thread calls `std::terminate`.
+    - [Build systems — pybind11 documentation](https://pybind11.readthedocs.io/en/stable/compiling.html) — Re-read **FetchContent** and **pybind11_add_module** for linking additional source files into the module target.
+    - [Quickstart: Building with CMake — GoogleTest](https://google.github.io/googletest/quickstart-cmake.html) — Reference for adding new test executables and discovering them with `gtest_discover_tests()`.
+    - [ThreadSanitizer — Clang documentation](https://clang.llvm.org/docs/ThreadSanitizer.html) — What ThreadSanitizer is, how to enable it (`-fsanitize=thread`), and how to read its output. Read the full page — it's short. ThreadSanitizer is a compiler instrumentation tool that detects data races at runtime. You enable it by adding `-fsanitize=thread` to both compile and link flags, run your program normally, and it prints any detected races to stderr. No races = no output.
+    - [Google Sanitizers Wiki — ThreadSanitizer](https://github.com/google/sanitizers/wiki/ThreadSanitizerCppManual) — Practical usage guide. Read **Usage** and **Typical Workflow** for how to interpret race reports (what "read/write of size N" and "previous write" mean). Skip **Suppressions** unless you hit false positives.
 
 ---
 
-## Day 5: Performance Benchmarking and Validation Proof
+## Day 6: Performance Benchmarking and Validation Proof
 **Focus**: Wall-clock timing, memory profiling, pytest-benchmark, scaling analysis, acceptance harness
 **Load**: Level 3
 
@@ -232,8 +265,9 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
     - [ ] Write `python/bench.py` using `time.perf_counter_ns()` to measure wall-clock time of `process_quadrants` on `(8192, 8192, 3)` uint8 arrays (192 MB payload). Print results in microseconds.
     - [ ] Implement a pure-Python baseline (`arr[:] = 255 - arr`) performing the same inversion, and time it identically. Print both results and the speedup ratio.
     - [ ] Add a `pytest-benchmark` test in `python/test_bench.py` that benchmarks both the C++ and Python paths using the `benchmark` fixture for statistically rigorous comparison (automatic calibration, warmup, percentile reporting).
+        - Note: This is an integration test with performance measurement — it crosses the FFI boundary and measures real-world throughput.
 
-    **Zero-Copy Proof**
+    **Zero-Copy Proof (Python)**
     - [ ] In `python/test_validation.py`, capture `arr.ctypes.data` and `arr.__array_interface__['data'][0]` before and after calling `process_quadrants`. Assert both are identical — the same heap address, not a copy.
     - [ ] Assert `arr.base is None` (the array owns its memory) before the call, and `arr.base is None` after — confirming no view indirection was introduced.
     - [ ] Assert `np.shares_memory(arr, arr)` remains true and `arr.flags['OWNDATA']` is still `True` after the C++ call mutates it.
@@ -250,22 +284,22 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
     - `uv run pytest python/ -v` passes all tests with zero failures.
     - `uv run python python/bench.py` prints a measurable speedup (>1x) for the C++ threaded path over the Python baseline on an 8192x8192 image.
     - `uv run python python/run_validation.py` prints `PASS` for all checks: pointer stability, pixel correctness, double-inversion idempotency, and dimension integrity.
-    - No test allocates a second array of the same size — memory high-water mark stays at ~1x the input payload (verify via `tracemalloc` or `/proc/self/status` VmRSS).
+    - No test allocates a second array of the same size — memory high-water mark stays at ~1x the input payload.
 
 - **Resources**:
-    - [pytest-benchmark documentation](https://pytest-benchmark.readthedocs.io/) — Benchmark fixture for pytest. Read the **Usage** section for how to pass callables to `benchmark()` and how to interpret the output table (min, max, mean, stddev, rounds).
-    - [Google Benchmark User Guide](https://google.github.io/benchmark/user_guide.html) — C++-side microbenchmark reference. Read **Passing Arguments** and **Multithreaded Benchmarks** if you want to add C++ benchmarks alongside the Python ones; otherwise use this as a mental model for rigorous benchmarking methodology.
-    - [The N-dimensional array (ndarray) — NumPy Manual](https://numpy.org/doc/stable/reference/arrays.ndarray.html) — Memory layout reference. Re-read **Internal memory layout of an ndarray** and **Array attributes** — you will need `ctypes.data`, `__array_interface__`, `flags`, and `base` to write the zero-copy assertions.
+    - [pytest-benchmark documentation](https://pytest-benchmark.readthedocs.io/) — Benchmark fixture for pytest. This is a Tier 5 tool — read it thoroughly. Start with **Usage** for how the `benchmark` fixture works: you pass a callable to `benchmark()` and it handles warmup, calibration, and statistical analysis automatically. Then read **Comparing** for how to compare multiple benchmarks side-by-side, and **Command line** for flags like `--benchmark-enable`, `--benchmark-disable`, `--benchmark-only`. Finally, read the output table format: `min`, `max`, `mean`, `stddev`, `rounds` — these are what you'll use to report speedup ratios.
+    - [time.perf_counter_ns — Python docs](https://docs.python.org/3/library/time.html#time.perf_counter_ns) — Reference for the high-resolution timer used in the manual benchmark script. One paragraph — just confirms it returns nanoseconds as an integer.
+    - [The N-dimensional array (ndarray) — NumPy Manual](https://numpy.org/doc/stable/reference/arrays.ndarray.html) — Re-read **Array attributes** — you will need `ctypes.data`, `__array_interface__`, `flags`, and `base` for the zero-copy assertions.
 
 ---
 
-## Day 6: DevOps & Delivery
-**Focus**: GitHub Actions CI, Makefile, build automation, lint enforcement
-**Load**: Level 3
+## Day 7: DevOps — CI/CD Pipeline
+**Focus**: GitHub Actions, automated lint, build, and test enforcement
+**Load**: Level 2
 
 - **Objectives**:
     1. Every push and PR to `main` triggers automated lint, type-check, build, and test.
-    2. The entire build-test cycle is reproducible via a single `make` target.
+    2. A failing lint, build, or test blocks the PR from merging.
 
 - **Tasks**:
 
@@ -273,25 +307,66 @@ This phase proves that the developer can bridge the Python-C++ boundary at zero 
     - [ ] Create `.github/workflows/ci.yml`:
         - Trigger on push and PR to `main`.
         - Job 1 — **Lint & Type Check**: `uv sync`, `uv run ruff check`, `uv run ruff format --check`, `uv run mypy python/`.
-        - Job 2 — **Build & Test**: `cmake -B build && cmake --build build`, `ctest --test-dir build --output-on-failure` for C++ tests, then `uv run pytest python/ -v` for Python tests.
-        - Note: Install system dependencies (`cmake`, `g++`) in the runner before the build step.
+        - Job 2 — **Build & Test**: Install system deps (`cmake`, `g++`), `cmake -B build && cmake --build build`, `ctest --test-dir build --output-on-failure` for C++ tests, then `PYTHONPATH=build uv run pytest python/ -v` for Python tests.
+        - Note: Install `uv` in the runner via `curl -LsSf https://astral.sh/uv/install.sh | sh` or use the official `astral-sh/setup-uv` action.
     - [ ] Add CI status badge to `README.md`.
+
+- **Acceptance Criteria**:
+    - Pushing to `main` triggers CI; all jobs pass green.
+    - A deliberate lint violation (e.g., unused import) causes the lint job to fail and exit non-zero.
+    - A deliberate test failure causes the test job to fail.
+
+- **Resources**:
+    - [Understanding GitHub Actions](https://docs.github.com/en/actions/about-github-actions/understanding-github-actions) — Start here. This is a Tier 4 technology — read this intro page fully. It explains the core concepts: workflows, events, jobs, steps, runners, and actions. Without this mental model, the YAML syntax won't make sense.
+    - [GitHub Actions Workflow Syntax](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions) — Reference for workflow YAML. Read **Events that trigger workflows** for `push`/`pull_request` config, **Using jobs in a workflow** for multi-job setup, and **steps** for how `run:` and `uses:` work. Use this as a reference while writing `ci.yml`, not as a read-through.
+    - [GitHub Actions Quickstart](https://docs.github.com/en/actions/writing-workflows/quickstart) — A minimal working example. Read the full page — it walks through creating a `.github/workflows/` file, triggering it, and reading the logs. Do this before writing your own workflow.
+    - [astral-sh/setup-uv — GitHub](https://github.com/astral-sh/setup-uv) — Official GitHub Action for installing uv in CI runners. Read the README for usage examples.
+
+---
+
+## Day 8: Delivery — Build Automation and Packaging
+**Focus**: Makefile, Docker, README, project polish
+**Load**: Level 2
+
+- **Objectives**:
+    1. The entire build-test cycle is reproducible via a single `make` target.
+    2. A Dockerfile produces a self-contained image that builds and tests the project from scratch.
+    3. The README provides a clear quick-start for anyone cloning the repo.
+
+- **Tasks**:
 
     **Makefile**
     - [ ] Write a `Makefile` with common targets:
         - `make build` — `cmake -B build && cmake --build build`.
-        - `make test` — `ctest --test-dir build --output-on-failure && uv run pytest python/ -v`.
-        - `make bench` — `uv run pytest python/test_bench.py -v --benchmark-enable`.
+        - `make test` — `ctest --test-dir build --output-on-failure && PYTHONPATH=build uv run pytest python/ -v`.
+        - `make bench` — `PYTHONPATH=build uv run pytest python/test_bench.py -v --benchmark-enable`.
         - `make lint` — `uv run ruff check && uv run ruff format --check && uv run mypy python/`.
         - `make clean` — `rm -rf build/`.
-        - `make validate` — `uv run python python/run_validation.py`.
-    - [ ] Update `README.md` with quick start: prerequisites, `uv sync`, `make build`, `make test`.
+        - `make validate` — `PYTHONPATH=build uv run python python/run_validation.py`.
+
+    **Docker**
+    - [ ] Write a `Dockerfile` that:
+        - Uses a minimal base image (e.g., `python:3.14-slim` or `ubuntu:24.04`).
+        - Installs system deps (`cmake`, `g++`, `curl`).
+        - Installs `uv`, runs `uv sync`.
+        - Runs `make build && make test` as the build verification step.
+        - Note: Use multi-stage builds to keep the final image small if desired, but the primary goal is reproducibility, not image size.
+    - [ ] Add a `make docker` target that builds and runs the Docker image.
+
+    **README**
+    - [ ] Update `README.md` with:
+        - Project description (one paragraph).
+        - Prerequisites: Python 3.14, CMake ≥3.16, C++17 compiler, uv.
+        - Quick start: `uv sync && make build && make test`.
+        - Available `make` targets.
+        - Architecture overview (reference CLAUDE.md or summarize).
 
 - **Acceptance Criteria**:
-    - Pushing to `main` triggers CI; all jobs pass green.
     - `make build && make test` succeeds on a clean clone after only `uv sync`.
     - `make lint` catches a deliberate formatting violation and exits non-zero.
+    - `docker build .` completes successfully and the container's test step passes.
 
 - **Resources**:
-    - [GitHub Actions Workflow Syntax](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions) — Reference for workflow triggers, jobs, and steps. Read **Events that trigger workflows** for `push`/`pull_request` config and **Using jobs in a workflow** for multi-job setup.
-    - [CMake GitHub Actions Setup](https://github.com/lukka/get-cmake) — Action for installing CMake in CI runners. Use this if the runner's default CMake is too old for your `cmake_minimum_required`.
+    - [GNU Make Manual — Introduction](https://www.gnu.org/software/make/manual/html_node/Introduction.html) — Start here for Makefile basics. Read **An Introduction to Makefiles** and **How to Read This Manual** — this covers targets, prerequisites, and recipes. Then jump to [Quick Reference](https://www.gnu.org/software/make/manual/html_node/Quick-Reference.html) as a cheat sheet while writing. Skip everything about implicit rules and pattern matching — you won't need them.
+    - [Dockerfile reference](https://docs.docker.com/reference/dockerfile/) — Full Dockerfile syntax reference. Read **FROM**, **RUN**, **COPY**, and **WORKDIR** for the basics; read **Multi-stage builds** if you want to optimize image size. Skip **ARG** and **ONBUILD** unless you need them.
+    - [Docker Get Started — Build and push your first image](https://docs.docker.com/get-started/introduction/build-and-push-first-image/) — Hands-on tutorial. Read this before the reference — it gives you a working mental model of the build → run cycle.
