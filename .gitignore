@@ -211,3 +211,6 @@ compile_commands.json
 
 # local claude files
 .claude/user/
+
+# Foundation-day scratch exercises (throwaway)
+scratch/
